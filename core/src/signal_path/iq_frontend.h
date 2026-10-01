@@ -41,6 +41,27 @@ public:
     void setFFTRate(double rate);
     void setFFTWindow(FFTWindow fftWindow);
 
+    /**
+     * Hand the spectrum over to the source instead of computing it here.
+     * Used by sources that receive a precomputed FFT rather than baseband
+     * (eg. a remote server streaming a spectrum). While this is enabled the
+     * internal FFT path is stopped and the bin count is left alone.
+     * @param enabled True to take the spectrum from the source.
+     * @param binCount Number of bins the source will provide. 0 keeps the FFT size.
+    */
+    void setExternalFFTInput(bool enabled, int binCount = 0);
+    inline bool getExternalFFTInput() { return _externalFFT; }
+    inline int getExternalFFTBinCount() { return _externalFFTBins; }
+
+    /**
+     * Acquire the buffer to write an externally computed spectrum into.
+     * Only valid while external FFT input is enabled. The buffer holds
+     * getExternalFFTBinCount() dB values and must be released after writing.
+     * @return Buffer to write to, or NULL if external FFT input is disabled.
+    */
+    float* acquireExternalFFTBuffer();
+    void releaseExternalFFTBuffer();
+
     void flushInputBuffer();
 
     void start();
@@ -101,6 +122,10 @@ protected:
     float* fftDbOut;
 
     double effectiveSr;
+
+    // External spectrum input
+    bool _externalFFT = false;
+    int _externalFFTBins = 0;
 
     bool _init = false;
 

@@ -3,6 +3,7 @@
 #include <cstring>
 #include <utils/flog.h>
 #include <core.h>
+#include <signal_path/signal_path.h>
 
 using namespace std::chrono_literals;
 
@@ -55,6 +56,14 @@ namespace server {
             default:
                 throw std::runtime_error("Unknown error");
             }
+        }
+
+        // Find out whether this server can stream a spectrum. Asking for IQ
+        // only is harmless, it's the default either way, so this is purely a
+        // probe for whether the command exists at all.
+        fftSupported = setStreamMode(STREAM_MODE_IQ);
+        if (!fftSupported) {
+            flog::warn("Server doesn't support spectrum streaming, IQ only");
         }
     }
 
@@ -133,6 +142,31 @@ namespace server {
         sendCommand(COMMAND_SET_COMPRESSION, 1);
     }
 
+    bool Client::setStreamMode(int mode) {
+        if (!isOpen()) { return false; }
+        s_cmd_data[0] = mode;
+        auto waiter = awaitCommandAck(COMMAND_SET_STREAM_MODE);
+        sendCommand(COMMAND_SET_STREAM_MODE, 1);
+        bool acked = waiter->await(fftSupported ? PROTOCOL_TIMEOUT_MS : PROTOCOL_PROBE_TIMEOUT_MS);
+        waiter->handled();
+        return acked;
+    }
+
+    void Client::setFFTParams(int binCount, float rate) {
+        if (!isOpen() || !fftSupported) { return; }
+        FFTParams* params = (FFTParams*)s_cmd_data;
+        params->binCount = binCount;
+        params->rate = rate;
+        auto waiter = awaitCommandAck(COMMAND_SET_FFT_PARAMS);
+        sendCommand(COMMAND_SET_FFT_PARAMS, sizeof(FFTParams));
+        if (waiter->await(PROTOCOL_TIMEOUT_MS)) {
+            // The server clamps to what it supports, use what it accepted
+            FFTParams* accepted = (FFTParams*)r_cmd_data;
+            fftBins = accepted->binCount;
+        }
+        waiter->handled();
+    }
+
     void Client::start() {
         if (!isOpen()) { return; }
         sendCommand(COMMAND_START, 0);
@@ -146,6 +180,9 @@ namespace server {
     }
 
     void Client::close() {
+        // Hand the spectrum back to the local FFT
+        sigpath::iqFrontEnd.setExternalFFTInput(false);
+
         // Stop worker
         decompIn.stopWriter();
         if (sock) { sock->close(); }
@@ -225,6 +262,36 @@ namespace server {
                 if (outCount) {
                     if (!decompIn.swap(outCount)) { break; }
                 };
+            }
+            else if (r_pkt_hdr->type == PACKET_TYPE_FFT) {
+                FFTHeader* fhdr = (FFTHeader*)r_pkt_data;
+                int bins = fhdr->binCount;
+
+                // Validate before trusting the size
+                if (bins < SERVER_MIN_FFT_BINS || bins > SERVER_MAX_FFT_BINS) {
+                    flog::error("Server sent an FFT with {0} bins", bins);
+                    continue;
+                }
+                if (r_pkt_hdr->size < sizeof(PacketHeader) + sizeof(FFTHeader) + bins) {
+                    flog::error("Truncated FFT packet");
+                    continue;
+                }
+
+                // Resize the spectrum if the server changed its bin count
+                if (bins != sigpath::iqFrontEnd.getExternalFFTBinCount()) {
+                    sigpath::iqFrontEnd.setExternalFFTInput(true, bins);
+                }
+
+                // Dequantize straight into the waterfall's buffer
+                float* fftBuf = sigpath::iqFrontEnd.acquireExternalFFTBuffer();
+                if (fftBuf) {
+                    uint8_t* qbins = &r_pkt_data[sizeof(FFTHeader)];
+                    float scale = (fhdr->maxDb - fhdr->minDb) / 255.0f;
+                    for (int i = 0; i < bins; i++) {
+                        fftBuf[i] = fhdr->minDb + ((float)qbins[i] * scale);
+                    }
+                }
+                sigpath::iqFrontEnd.releaseExternalFFTBuffer();
             }
             else if (r_pkt_hdr->type == PACKET_TYPE_ERROR) {
                 flog::error("SDR++ Server Error: {0}", rbuffer[sizeof(PacketHeader)]);

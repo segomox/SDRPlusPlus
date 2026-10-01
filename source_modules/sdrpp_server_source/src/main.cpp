@@ -199,10 +199,23 @@ private:
                 config.release(true);
             }
 
-            bool dummy = true;
-            style::beginDisabled();
-            ImGui::Checkbox("Full IQ", &dummy);
-            style::endDisabled();
+            if (_this->client->fftSupported) {
+                if (ImGui::Checkbox("Full IQ", &_this->fullIQ)) {
+                    _this->setFullIQ(_this->fullIQ);
+                }
+                if (ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("Off: the server sends only a spectrum.\nMuch less bandwidth, but no demodulation.");
+                }
+            }
+            else {
+                bool dummy = true;
+                style::beginDisabled();
+                ImGui::Checkbox("Full IQ", &dummy);
+                style::endDisabled();
+                if (ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("This server is too old to stream a spectrum");
+                }
+            }
 
             // Calculate datarate
             _this->frametimeCounter += ImGui::GetIO().DeltaTime;
@@ -231,9 +244,24 @@ private:
         return client && client->isOpen();
     }
 
+    void setFullIQ(bool enabled) {
+        if (!connected()) { return; }
+        if (enabled) {
+            client->setStreamMode(server::STREAM_MODE_IQ);
+            sigpath::iqFrontEnd.setExternalFFTInput(false);
+        }
+        else {
+            // Ask for a spectrum sized for the display, then take it over
+            client->setFFTParams(SERVER_DEF_FFT_BINS, SERVER_DEF_FFT_RATE);
+            sigpath::iqFrontEnd.setExternalFFTInput(true, client->fftBins);
+            client->setStreamMode(server::STREAM_MODE_FFT);
+        }
+    }
+
     void tryConnect() {
         try {
             if (client) { client.reset(); }
+            fullIQ = true;
             client = server::connect(hostname, port, &stream);
             deviceInit();
         }
@@ -284,6 +312,7 @@ private:
     OptionList<std::string, dsp::compression::PCMType> sampleTypeList;
     int sampleTypeId;
     bool compression = false;
+    bool fullIQ = true;
 
     std::shared_ptr<server::Client> client;
 };

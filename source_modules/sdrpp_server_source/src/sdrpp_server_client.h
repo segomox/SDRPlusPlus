@@ -16,6 +16,11 @@
 
 #define PROTOCOL_TIMEOUT_MS             10000
 
+// Short timeout for the one probe that tells us whether the server is new
+// enough to stream a spectrum. An older server answers with an error packet
+// rather than an ack, so this is waited out once at connect time.
+#define PROTOCOL_PROBE_TIMEOUT_MS       2000
+
 namespace server {
     class PacketWaiter {
     public:
@@ -90,6 +95,13 @@ namespace server {
         void setSampleType(dsp::compression::PCMType type);
         void setCompression(bool enabled);
 
+        /**
+         * Ask the server which streams to send. Returns false if the server
+         * doesn't know about stream modes, in which case it keeps sending IQ.
+        */
+        bool setStreamMode(int mode);
+        void setFFTParams(int binCount, float rate);
+
         void start();
         void stop();
 
@@ -98,6 +110,10 @@ namespace server {
 
         int bytes = 0;
         bool serverBusy = false;
+
+        // Whether the server understood COMMAND_SET_STREAM_MODE
+        bool fftSupported = false;
+        int fftBins = SERVER_DEF_FFT_BINS;
 
     private:
         void worker();

@@ -11,6 +11,10 @@ namespace server {
     void _clientHandler(net::Conn conn, void* ctx);
     void _packetHandler(int count, uint8_t* buf, void* ctx);
     void _testServerHandler(uint8_t* data, int count, void* ctx);
+    void _fftHandler(dsp::complex_t* data, int count, void* ctx);
+
+    void updateFFTPath();
+    void setStreamMode(int mode);
 
     void drawMenu();
 

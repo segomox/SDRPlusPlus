@@ -197,6 +197,37 @@ void IQFrontEnd::setFFTWindow(FFTWindow fftWindow) {
     updateFFTPath();
 }
 
+void IQFrontEnd::setExternalFFTInput(bool enabled, int binCount) {
+    assert(_init);
+    if (enabled && binCount <= 0) { binCount = _fftSize; }
+
+    // Only touch the FFT branch when the mode actually changes
+    bool changed = (enabled != _externalFFT);
+    if (changed && enabled) {
+        reshape.tempStop();
+        fftSink.tempStop();
+    }
+
+    _externalFFT = enabled;
+    _externalFFTBins = enabled ? binCount : 0;
+    gui::waterfall.setRawFFTSize(enabled ? binCount : _fftSize);
+
+    if (changed && !enabled) {
+        reshape.tempStart();
+        fftSink.tempStart();
+    }
+}
+
+float* IQFrontEnd::acquireExternalFFTBuffer() {
+    if (!_externalFFT) { return NULL; }
+    return _acquireFFTBuffer(_fftCtx);
+}
+
+void IQFrontEnd::releaseExternalFFTBuffer() {
+    if (!_externalFFT) { return; }
+    _releaseFFTBuffer(_fftCtx);
+}
+
 void IQFrontEnd::flushInputBuffer() {
     inBuf.flush();
 }
@@ -301,7 +332,7 @@ void IQFrontEnd::updateFFTPath(bool updateWaterfall) {
     dsp::buffer::clear(fftInBuf, _fftSize - _nzFFTSize, _nzFFTSize);
 
     // Update waterfall (TODO: This is annoying, it makes this module non testable and will constantly clear the waterfall for any reason)
-    if (updateWaterfall) { gui::waterfall.setRawFFTSize(_fftSize); }
+    if (updateWaterfall && !_externalFFT) { gui::waterfall.setRawFFTSize(_fftSize); }
 
     // Restart branch
     reshape.tempStart();
