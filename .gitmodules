@@ -1,0 +1,3 @@
+[submodule "source_modules/esp_sdr_source"]
+	path = source_modules/esp_sdr_source
+	url = https://github.com/z2labs/sdrpp-esp-sdr-source

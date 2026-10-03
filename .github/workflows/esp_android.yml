@@ -1,0 +1,47 @@
+name: SDR++ ESP (Android APK)
+
+# z2labs fork: SDR++ with the ESP-SDR (ESP32-S3) source module and the external FFT input
+# (on-chip 16/40/80 MHz spectrum). Same build container as upstream's Android job.
+on:
+    push:
+        branches: [esp-sdr]
+        tags: ['esp-v*']
+    workflow_dispatch:
+
+jobs:
+    build_android:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+
+        steps:
+        - uses: actions/checkout@v4
+          with:
+              submodules: recursive
+
+        - name: Fetch container
+          working-directory: ${{runner.workspace}}
+          run: git clone https://github.com/AlexandreRouma/android-sdr-kit
+
+        - name: Build container
+          working-directory: ${{runner.workspace}}/android-sdr-kit
+          run: docker build --progress=plain -t android-sdr-kit .
+
+        - name: Build
+          run: docker run --name build -v $GITHUB_WORKSPACE:/root/SDRPlusPlus android-sdr-kit /bin/bash -l -c "cd /root/SDRPlusPlus/android && gradle --info assembleDebug"
+
+        - name: Recover APK
+          working-directory: ${{runner.workspace}}
+          run: docker cp build:/root/SDRPlusPlus/android/app/build/outputs/apk/debug/app-debug.apk ./ && mv app-debug.apk sdrpp-esp.apk
+
+        - name: Save APK
+          uses: actions/upload-artifact@v4
+          with:
+              name: sdrpp-esp-android
+              path: ${{runner.workspace}}/sdrpp-esp.apk
+
+        - name: Release (tags esp-v*)
+          if: startsWith(github.ref, 'refs/tags/esp-v')
+          uses: softprops/action-gh-release@v2
+          with:
+              files: ${{runner.workspace}}/sdrpp-esp.apk

@@ -16,6 +16,7 @@ option(OPT_BUILD_BADGESDR_SOURCE "Build BadgeSDR Source Module (Dependencies: li
 option(OPT_BUILD_BLADERF_SOURCE "Build BladeRF Source Module (Dependencies: libbladeRF)" OFF)
 option(OPT_BUILD_DRAGONLABS_SOURCE "Build Dragon Labs Source Module (Dependencies: libdlcr)" OFF)
 option(OPT_BUILD_FILE_SOURCE "Wav file source" ON)
+option(OPT_BUILD_ESP_SDR_SOURCE "Build ESP-SDR (ESP32-S3) Source Module (no dependencies required)" ON)
 option(OPT_BUILD_FOBOSSDR_SOURCE "Build FobosSDR Source Module (Dependencies: libfobos)" OFF)
 option(OPT_BUILD_HACKRF_SOURCE "Build HackRF Source Module (Dependencies: libhackrf)" ON)
 option(OPT_BUILD_HAROGIC_SOURCE "Build Harogic Source Module (Dependencies: htra_api)" OFF)
@@ -147,6 +148,10 @@ endif (OPT_BUILD_BLADERF_SOURCE)
 if (OPT_BUILD_DRAGONLABS_SOURCE)
 add_subdirectory("source_modules/dragonlabs_source")
 endif (OPT_BUILD_DRAGONLABS_SOURCE)
+
+if (OPT_BUILD_ESP_SDR_SOURCE)
+add_subdirectory("source_modules/esp_sdr_source")
+endif (OPT_BUILD_ESP_SDR_SOURCE)
 
 if (OPT_BUILD_FILE_SOURCE)
 add_subdirectory("source_modules/file_source")

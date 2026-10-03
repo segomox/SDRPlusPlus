@@ -1,3 +1,14 @@
+> **z2labs fork, branch `esp-sdr`.** SDR++ with the [ESP-SDR (ESP32-S3) source module](https://github.com/z2labs/sdrpp-esp-sdr-source)
+> built in, for Windows and **Android (USB OTG)**, including the display-only 16 / 40 / 80 MHz on-chip spectrum mode.
+> That mode needs a small core addition (`IQFrontEnd::setExternalFFTInput`, see the module's
+> [docs/wideband-spectrum.md](https://github.com/z2labs/sdrpp-esp-sdr-source/blob/main/docs/wideband-spectrum.md)),
+> which is why this is a fork. The Android build installs as **SDR++ ESP** (`io.z2labs.sdrpp_esp`) next to the official app.
+> APK: [Actions](https://github.com/z2labs/SDRPlusPlus/actions/workflows/esp_android.yml) / Releases.
+>
+> The changes in this fork were made with AI assistance. They are **not** submitted to, endorsed by or supported by the
+> upstream SDR++ project: please do not report problems with this build upstream; use this fork's issues instead.
+> Everything else is upstream SDR++ by Alexandre Rouma (Ryzerth), GPL-3.0. Turbo Mode developed by Zoltan Doczi from https://www.z2labs.io
+
 # SDR++, The bloat-free SDR software<br>
 
 ![Screenshot](https://i.imgur.com/Ter2MQJ.png)
