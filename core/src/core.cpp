@@ -299,6 +299,7 @@ int sdrpp_main(int argc, char* argv[]) {
 
     core::configManager.conf["modules"][modCount++] = "airspy_source.so";
     core::configManager.conf["modules"][modCount++] = "airspyhf_source.so";
+    core::configManager.conf["modules"][modCount++] = "esp_sdr_source.so";
     core::configManager.conf["modules"][modCount++] = "hackrf_source.so";
     core::configManager.conf["modules"][modCount++] = "hermes_source.so";
     core::configManager.conf["modules"][modCount++] = "hydrasdr_source.so";
@@ -328,6 +329,11 @@ int sdrpp_main(int argc, char* argv[]) {
             flog::info("Missing key in config {0}, repairing", item.key());
             core::configManager.conf[item.key()] = defConfig[item.key()];
         }
+    }
+
+    // z2labs esp-sdr: existing configs predate the ESP-SDR source, give it an instance
+    if (!core::configManager.conf["moduleInstances"].contains("ESP-SDR Source")) {
+        core::configManager.conf["moduleInstances"]["ESP-SDR Source"] = defConfig["moduleInstances"]["ESP-SDR Source"];
     }
 
     // Remove unused elements
