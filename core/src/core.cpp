@@ -173,6 +173,8 @@ int sdrpp_main(int argc, char* argv[]) {
     defConfig["moduleInstances"]["BladeRF Source"]["enabled"] = true;
     defConfig["moduleInstances"]["Dragon Labs Source"]["module"] = "dragonlabs_source";
     defConfig["moduleInstances"]["Dragon Labs Source"]["enabled"] = true;
+    defConfig["moduleInstances"]["ESP-SDR Source"]["module"] = "esp_sdr_source";
+    defConfig["moduleInstances"]["ESP-SDR Source"]["enabled"] = true;
     defConfig["moduleInstances"]["File Source"]["module"] = "file_source";
     defConfig["moduleInstances"]["File Source"]["enabled"] = true;
     defConfig["moduleInstances"]["FobosSDR Source"]["module"] = "fobossdr_source";
